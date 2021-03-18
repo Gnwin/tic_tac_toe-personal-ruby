@@ -1,0 +1,277 @@
+#!/usr/bin/env ruby
+# rubocop:disable Metrics/PerceivedComplexity
+# rubocop:disable Metrics/CyclomaticComplexity
+# rubocop:disable Metrics/MethodLength
+# rubocop:disable Metrics/AbcSize
+require_relative '../lib/tic_tac_toe'
+
+puts '
+_______ _          _______             _______
+|__   __(_)        |__   __|           |__   __|
+   | |   _  ___ ______| | __ _  ___ ______| | ___   ___
+   | |  | |/ __|______| |/ _` |/ __|______| |/ _ \ / _ \
+   | |  | | (__       | | (_| | (__       | | (_) |  __/
+   |_|  |_|\___|      |_|\__,_|\___|      |_|\___/ \___|
+	 '
+
+puts '
+
+
+'
+puts "What's your name?"
+user = gets.chomp
+user = 'Stranger' if user == ''
+puts '
+
+
+'
+puts "Hi #{user}, Welcome to TIC TAC TOE game"
+
+puts '
+
+
+'
+
+@val = 0
+
+def display_guide
+  puts "
+	"
+  puts '1 | 2 | 3'
+  puts '---------'
+  puts '4 | 5 | 6'
+  puts '---------'
+  puts '7 | 8 | 9'
+  puts "
+	"
+end
+
+def choose(name0, arr0)
+  puts "its #{name0}'s turn to choose a board slot number from #{arr0}"
+end
+
+def display_slots
+  puts "#{Board.squares[1]}  #{Board.squares[2]}  #{Board.squares[3]}"
+  puts "#{Board.squares[4]}  #{Board.squares[5]}  #{Board.squares[6]}"
+  puts "#{Board.squares[7]}  #{Board.squares[8]}  #{Board.squares[9]}"
+  puts "
+	"
+end
+
+def input
+  gets.chomp.to_i
+end
+
+def warn
+  puts 'Thats the wrong move!'
+end
+
+def display_players
+  puts "
+
+	"
+  print "player 1: #{@player1.name}, letter: #{@player1.letter}"
+  puts "
+	"
+  puts "player 2: #{@player2.name}, letter: #{@player2.letter}"
+  puts "
+
+	"
+end
+
+def init
+  puts 'Are you ready?'
+  puts "hit p to continue or 'ctrl c' to stop the game"
+  pl = gets.chomp
+  while pl.downcase != 'p'
+    puts 'hit p to continue'
+    pl = gets.chomp
+  end
+  puts 'How many players?'
+  no_of_players = gets.chomp.to_i
+  while no_of_players > 2 || no_of_players < 1
+    puts 'you can only have 1 or 2 players'
+    puts 'How many players?'
+    no_of_players = gets.chomp.to_i
+  end
+  no_of_players
+end
+
+@players_num = init
+
+def details
+  puts 'player1, whats your name?'
+  name1 = gets.chomp
+  name1 = 'user1' if name1 == ''
+  @letter2 = nil
+
+  case @players_num
+  when 2
+    loop do
+      puts "player1, choose 'X' or 'O'?"
+      @letter1 = gets.chomp.upcase
+      break if @letter1 == 'X' || @letter1 == 'O'
+
+      puts "You cannot choose any other character except 'X' or 'O'"
+    end
+    @letter2 = @letter1 == 'X' ? 'O' : 'X'
+
+    puts 'player2, whats your name?'
+    name2 = gets.chomp
+    name2 = 'user2' if name2 == ''
+    @player1 = Player.new(name1, @letter1)
+    @player2 = Player.new(name2, @letter2)
+
+  when 1
+    loop do
+      puts "player1, choose 'X' or 'O'?"
+
+      @letter1 = gets.chomp.upcase
+      break if @letter1 == 'X' || @letter1 == 'O'
+
+      puts "You cannot choose any other character except 'X' or 'O'"
+    end
+
+    @letter2 = @letter1 == 'X' ? 'O' : 'X'
+
+    name2 = %w[Ruby Doe Wolverine Voltron Nairobi Professor].sample
+    @player1 = Player.new(name1, @letter1)
+    @player2 = AutoPlayer.new(name2, @letter2)
+  end
+
+  [@player1, @player2]
+end
+
+players = details
+
+def tour_num
+  loop do
+    puts 'how many games do you want to play at a goal? put in a number between 1 and 6'
+    @t = gets.chomp.to_i
+    break if @t.instance_of?(Integer) && (@t >= 1 && @t <= 6)
+
+    puts 'The game is only limited to 6 games'
+  end
+  @t
+end
+
+@tournament = tour_num
+
+display_players
+
+@tictac = Game.new
+@score = Scoreboard.new
+@tictactoe = AutoGame.new
+
+def run_game(player1, player2)
+  display_score = lambda do
+    puts 'Score:'
+    print @score.x_score
+    print '    X'
+    print '     '
+    print @score.o_score
+    print '    O'
+    puts '      '
+  end
+
+  loop do
+    puts "Who is starting first? #{player1.name} or #{player2.name}? type 1 or 2 respectively"
+    @starter = gets.chomp.to_i
+    break if @starter == 1 || @starter == 2
+
+    puts "You can only type 1 or 2 respectively for #{player1.name} or #{player2.name}"
+  end
+
+  run = proc do |instance, symbol, name, current_player|
+    slot1 = current_player.pick_slot
+    instance.play(slot1, symbol)
+    win = instance.checkmatch(symbol)
+    display_score.call
+    @val += 1
+    if win == symbol
+      @score.increment_score(symbol)
+      display_score.call
+      puts "#{name}, you won the last round!!"
+      return 'y'
+    end
+  end
+
+  if @starter == 1
+    loop do
+      res = run.call(@tictac, player1.letter, player1.name, player1)
+      break if res == 'y'
+
+      if @val == 9
+        @score.increment_score(player1.letter)
+        @score.increment_score(player2.letter)
+        display_score.call
+        puts 'There was no winner for this round, you both have 1 point each'
+        break
+      end
+
+      if @players_num == 1
+        res1 = run.call(@tictactoe, player2.letter, player2.name, player2)
+        break if res1 == 'y'
+      else
+        res2 = run.call(@tictac, player2.letter, player2.name, player2)
+        break if res2 == 'y'
+      end
+    end
+  else
+    loop do
+      if @players_num == 1
+        res1 = run.call(@tictactoe, player2.letter, player2.name, player2)
+        break if res1 == 'y'
+      else
+        res2 = run.call(@tictac, player2.letter, player2.name, player2)
+        break if res2 == 'y'
+      end
+
+      if @val == 9
+        @score.increment_score(player1.letter)
+        @score.increment_score(player2.letter)
+        display_score.call
+        puts 'There was no winner for this round, you both have 1 point each'
+        break
+      end
+
+      res = run.call(@tictac, player1.letter, player1.name, player1)
+      break if res == 'y'
+    end
+  end
+end
+
+i = 0
+round = 0
+loop do
+  round += 1
+  puts '
+	'
+  puts "Play Round #{round}"
+  run_game(players[0], players[1])
+  Board.reset
+  @val = 0
+  i += 1
+  next unless i == @tournament
+
+  if @tournament >= 2
+    if @score.x_score > @score.o_score && @player1.letter == 'X'
+      puts "Congrats #{@player1.name}, you won the tournament!!!"
+    elsif @score.x_score < @score.o_score && @player1.letter == 'O'
+      puts "Congrats #{@player1.name}, you won the tournament!!!"
+    elsif @score.x_score > @score.o_score && @player2.letter == 'X'
+      puts "Congrats #{@player2.name}, you won the tournament!!!"
+    elsif @score.x_score < @score.o_score && @player2.letter == 'O'
+      puts "Congrats #{@player2.name}, you won the tournament!!!"
+    else
+      puts 'No winner for the tournament, it is a draw!!!'
+    end
+  end
+  display_players
+  break
+end
+
+# rubocop:enable Metrics/AbcSize
+# rubocop:enable Metrics/MethodLength
+# rubocop:enable Metrics/CyclomaticComplexity
+# rubocop:enable Metrics/PerceivedComplexity
